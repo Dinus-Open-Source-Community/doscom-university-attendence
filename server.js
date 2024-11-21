@@ -4,7 +4,8 @@ const cors = require("cors");
 const path = require("path");
 const connectDB = require('./config/database');
 const dotenv = require('dotenv');
-
+const multer = require('multer');
+const xlsx = require('xlsx');
 
 
 
@@ -14,8 +15,8 @@ connectDB();
 // Import models
 const Person = require("./models/person");
 const Attendance = require("./models/attendance");
-const Leave = require("./models/leave");
-const Login = require("./models/login");
+// const Leave = require("./models/leave");
+// const Login = require("./models/login");
 
 
 const app = express();
@@ -329,6 +330,108 @@ app.post("/updateEmployee", async (req, res) => {
   }
 });
 
+// Konfigurasi multer untuk upload file
+const upload = multer({ 
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, 'uploads/') // Pastikan folder uploads sudah ada
+    },
+    filename: (req, file, cb) => {
+      cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname))
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    // Validasi tipe file Excel
+    const extname = path.extname(file.originalname).toLowerCase();
+    if (extname === '.xlsx' || extname === '.xls' || extname === '.csv') {
+      cb(null, true);
+    } else {
+      cb(new Error('Hanya file Excel yang diperbolehkan!'), false);
+    }
+  }
+});
+
+app.post('/import-employees', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ type: 'import_no_file', message: 'Tidak ada file yang diunggah' });
+    }
+
+    // Baca file Excel
+    const workbook = xlsx.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    
+    // Konversi worksheet ke JSON
+    const employees = xlsx.utils.sheet_to_json(worksheet);
+
+    // Validasi struktur data
+    const requiredFields = ['token', 'name', 'dept_name', 'phone', 'salary', 'role'];
+    const invalidRows = employees.filter(emp => 
+      !requiredFields.every(field => emp.hasOwnProperty(field))
+    );
+
+    if (invalidRows.length > 0) {
+      return res.status(400).json({ 
+        type: 'import_invalid_data', 
+        message: 'Beberapa baris data tidak lengkap',
+        invalidRows: invalidRows
+      });
+    }
+
+    // Proses import
+    const importResults = {
+      successful: [],
+      duplicates: [],
+      errors: []
+    };
+
+    for (const emp of employees) {
+      try {
+        // Cek apakah token sudah ada
+        const existingPerson = await Person.findOne({ token: +emp.token });
+        
+        if (existingPerson) {
+          importResults.duplicates.push(emp);
+          continue;
+        }
+
+        // Buat pegawai baru
+        const newPerson = await Person.create({
+          token: +emp.token,
+          name: emp.name,
+          dept_name: emp.dept_name,
+          phone: emp.phone,
+          salary: +emp.salary,
+          role: emp.role
+        });
+
+        importResults.successful.push(newPerson);
+      } catch (error) {
+        importResults.errors.push({ employee: emp, error: error.message });
+      }
+    }
+
+    res.json({
+      type: 'import_complete',
+      summary: {
+        total: employees.length,
+        successful: importResults.successful.length,
+        duplicates: importResults.duplicates.length,
+        errors: importResults.errors.length
+      },
+      details: importResults
+    });
+
+  } catch (error) {
+    console.error('Import Error:', error);
+    res.status(500).json({ 
+      type: 'import_error', 
+      message: 'Gagal mengimpor data',
+      error: error.message 
+    });
+  }
+});
 
 
 app.listen(3001, () => {

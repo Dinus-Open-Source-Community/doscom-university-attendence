@@ -1,13 +1,13 @@
 {
   "name": "qrscan",
   "version": "1.0.0",
-  "description": "Smart Attendance System using QR code",
+  "description": "",
   "main": "index.html",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon server.js"
   },
-  "author": "Ashraf",
+  "author": "Fahmi",
   "license": "ISC",
   "dependencies": {
     "bcrypt-nodejs": "^0.0.3",

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Person Dashboard</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <style>
+        .dashboard-header {
+            background-color: #f8f9fa;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .card-counter {
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .card-counter.primary {
+            background-color: #007bff;
+            color: #fff;
+        }
+        .card-counter.success {
+            background-color: #28a745;
+            color: #fff;
+        }
+        .card-counter.info {
+            background-color: #17a2b8;
+            color: #fff;
+        }
+        .card-counter h3 {
+            font-size: 2.5rem;
+            margin: 0;
+        }
+        .card-counter p {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="container">
+            <h1 class="h3">Person Dashboard</h1>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card-counter primary">
+                    <h3 id="totalPeople">0</h3>
+                    <p>Total People</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-counter success">
+                    <h3 id="totalDepartments">0</h3>
+                    <p>Total Departments</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-counter info">
+                    <h3 id="avgSalary">0</h3>
+                    <p>Average Salary</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">People List</h5>
+            </div>
+            <div class="card-body">
+                <table id="personTable" class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Token</th>
+                            <th>Name</th>
+                            <!-- <th>Department</th>
+                            <th>Phone</th>
+                            <th>Salary</th> -->
+                            <th>Role</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable
+            const table = $('#personTable').DataTable({
+                pageLength: 10,
+                order: [[1, 'asc']], // Sort by name by default
+                ajax: {
+                    url: '/person',
+                    dataSrc: function(json) {
+                        console.log('Received data:', json); // Debug log
+                        updateDashboardStats(json);
+                        return json.map(item => {
+                            return [
+                                item.token,
+                                item.name,
+                                // item.dept_name,
+                                // item.phone,
+                                // formatCurrency(item.salary),
+                                formatRole(item.role)
+                            ];
+                        });
+                    }
+                }
+            });
+
+            // Refresh data every 5 minutes
+            setInterval(() => {
+                table.ajax.reload(null, false);
+            }, 300000);
+
+            // Function to update dashboard statistics
+            function updateDashboardStats(data) {
+                // Total people
+                $('#totalPeople').text(data.length);
+                
+                // Total unique departments
+                const departments = new Set(data.map(item => item.dept_name));
+                $('#totalDepartments').text(departments.size);
+                
+                // Average salary
+                // const totalSalary = data.reduce((sum, item) => sum + item.salary, 0);
+                // const avgSalary = data.length > 0 ? totalSalary / data.length : 0;
+                // $('#avgSalary').text(formatCurrency(avgSalary));
+            }
+
+            // Function to format currency
+            function formatCurrency(amount) {
+                return new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR'
+                }).format(amount);
+            }
+
+            // Function to format role with badge
+            function formatRole(role) {
+                const badges = {
+                    'Cyber Security': 'bg-danger',
+                    'Backend': 'bg-primary',
+                    'Frontend': 'bg-success',
+                    'Mobile': 'bg-info'
+                };
+
+                const badgeClass = badges[role.toLowerCase()] || 'bg-success';
+                return `<span class="badge ${badgeClass}">${role}</span>`;
+            }
+        });
+    </script>
+</body>
+</html>

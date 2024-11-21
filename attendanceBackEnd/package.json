@@ -1,0 +1,29 @@
+{
+  "name": "qrscan",
+  "version": "1.0.0",
+  "description": "Smart Attendance System using QR code",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server.js"
+  },
+  "author": "Ashraf",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt-nodejs": "^0.0.3",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.8",
+    "express": "^4.21.1",
+    "express-ejs-layouts": "^2.5.1",
+    "jsdom": "^20.0.1",
+    "knex": "^2.3.0",
+    "mongoose": "^8.8.2",
+    "path": "^0.12.7",
+    "pg": "^8.8.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  }
+}
